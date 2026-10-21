@@ -68,6 +68,7 @@ public class TestLogicBlock : LogicBlock
 {
   public Action OnInitializeAction { get; set; } = () => { };
   public Action OnStartAction { get; set; } = () => { };
+  public Action OnStartSubscriptionsAction { get; set; } = () => { };
   public Action OnStopAction { get; set; } = () => { };
 
 
@@ -83,5 +84,10 @@ public class TestLogicBlock : LogicBlock
 
   public override void OnInitialize() => OnInitializeAction();
   public override void OnStart() => OnStartAction();
+  public override IEnumerable<IDisposable> OnStartSubscriptions()
+  {
+    OnStartSubscriptionsAction();
+    yield break;
+  }
   public override void OnStop() => OnStopAction();
 }

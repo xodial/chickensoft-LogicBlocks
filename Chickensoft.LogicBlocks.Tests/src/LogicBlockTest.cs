@@ -3,6 +3,7 @@ namespace Chickensoft.LogicBlocks.Tests;
 using Collections;
 using Fixtures;
 using Shouldly;
+using Sync.Primitives;
 
 public sealed class LogicBlockTest
 {
@@ -166,6 +167,52 @@ public sealed class LogicBlockStartAndStopTest
     startCalled.ShouldBeTrue();
     logic.Stop();
     stopCalled.ShouldBeTrue();
+  }
+
+  [Fact]
+  public void StartCallsOnStartSubscriptionsBeforeOnStart()
+  {
+    using var logic = new TestLogicBlock();
+    logic.Set(new TestLogicBlockState());
+
+    var subscriptionsCalled = false;
+    var startCalled = false;
+    var startCalledAfterSubscriptions = false;
+
+    logic.OnStartSubscriptionsAction = () => subscriptionsCalled = true;
+    logic.OnStartAction = () =>
+    {
+      startCalled = true;
+      startCalledAfterSubscriptions = subscriptionsCalled;
+    };
+
+    logic.Start<TestLogicBlockState>();
+
+    subscriptionsCalled.ShouldBeTrue();
+    startCalled.ShouldBeTrue();
+    startCalledAfterSubscriptions.ShouldBeTrue();
+  }
+
+  [Fact]
+  public void StartSubscribesBeforeEnteringInitialState()
+  {
+    using var channel = new AutoChannel();
+    using var logic = new TestLogicBlock();
+
+    AutoChannel.Binding? binding = null;
+    var handled = false;
+
+    logic.OnStartSubscriptionsAction = () => binding = channel.Bind()
+      .On((in TestLogicBlockState.Input.TestInput _) => handled = true);
+    logic.Set(new TestLogicBlockState
+    {
+      OnEnterAction = () => channel.Send(new TestLogicBlockState.Input.TestInput())
+    });
+
+    logic.Start<TestLogicBlockState>();
+
+    handled.ShouldBeTrue();
+    binding?.Dispose();
   }
 
   [Fact]

@@ -321,18 +321,16 @@ public abstract partial class LogicBlock : ILogicBlock,
       OnInitialize();
     }
 
+    foreach (var disposable in OnStartSubscriptions()) // runs user code
+    {
+      _disposables!.Add(disposable);
+    }
+
     // run the second half of a state change sequence since there's no state to exit
     var state = _state!;
     ChangeState(state, null);
 
     OnStart(); // runs user code
-
-    var disposables = OnStartSubscriptions(); // runs user code
-
-    foreach (var disposable in disposables)
-    {
-      _disposables!.Add(disposable);
-    }
 
     // announce that we've started
     _subject.Broadcast(new StartedBroadcast()); // runs user code
